@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ## DATE
-#DATE=$(date -d "1 minute ago" "+%d %b %H:%M:%S")
-#DATE=$(date -d "1 minute ago" "+%d %b %H:%M:%S")
+#DATE=`date -d "1 minute ago" "+%d %b %H:%M:%S"`
 
 ## Prod
 #LOG=/usr/local/var/log/chinachu-operator.stdout.log
@@ -12,27 +11,29 @@ LOG=log/chinachu-operator.stdout.log
 
 ## RECORDLOG
 function record() {
-
-  while read i; do
-    field2=$(echo ${i} | grep "RECORD" | awk '{print $2}')
-    if [ -n "${field2}" ]; then
-      echo ${field2}
-    fi
-  done
+  rec=`cat ${LOG} | grep "$DATE" | grep "RECORD"`
+  echo $rec
+  STATUS=`echo $rec | awk '{ print $5 }'`
+  RECLOG=`cat ${LOG} | grep "RECORD" | sed -e 's/#\w{4}\s//' | head -n 1`
+  CNT=`echo $RECLOG | wc -l`
+  if [ -n $CNT ]; then
+    COLOR="#dc143c"
+    STATUS="RECORD"
+    LOGS=$RECLOG
+    slack
+  fi
 }
-#tail -n 0 -F ${LOG} | record
-#exit
 
 ## FIN
 function fin() {
-  rec=$(cat ${LOG} | grep "$DATE" | grep "FIN")
-  STATUS=$(echo $rec | awk '{ print $5 }')
-  FINLOG=$(cat ${LOG} | grep "$DATE" | grep "FIN" | sed -e 's/#\w{4}\s//' | tail -n 1)
-  cnt=$(echo $FINLOG | wc -l)
-  if [ $cnt -eq 1 ]; then
+  rec=`cat ${LOG} | grep "$DATE" | grep "FIN"`
+  STATUS=`echo $rec | awk '{ print $5 }'`
+  FINLOG=`cat ${LOG} | grep "FIN" | sed -e 's/#\w{4}\s//' | head -n 1`
+  CNT=`echo $FINLOG | wc -l`
+  if [ -n $CNT ]; then
     COLOR="good"
     STATUS="FIN"
-    LOGS=$FINLOG
+    LOGS="$FINLOG"
     slack
   fi
 }
@@ -66,6 +67,5 @@ EOS
   )
   curl -X POST -H 'Content-type: application/json' -d "$json" "$URL"
 }
-
 
 fin
